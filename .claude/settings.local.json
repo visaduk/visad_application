@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(python3:*)",
+      "Bash(mysql -u root -pelnitish@11 visadcouk_dataf -e \"SELECT * FROM travelers WHERE id = 830\\\\G\")"
+    ]
+  }
+}

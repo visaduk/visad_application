@@ -1,0 +1,325 @@
+{
+  "country": "Portugal",
+  "description": "Schengen Visa Application Form - Portugal field mapping",
+
+  "text_fields": [
+    {
+      "form_field": "1. Surname (Family name)",
+      "api_key": "surname",
+      "db_table": "travelers",
+      "db_column": "last_name",
+      "transform": "toUpperCase()"
+    },
+    {
+      "form_field": "3. First name(s)",
+      "api_key": "first_name",
+      "db_table": "travelers",
+      "db_column": "first_name",
+      "transform": "toUpperCase()"
+    },
+    {
+      "form_field": "4. Date of birth",
+      "api_key": "dob",
+      "db_table": "travelers",
+      "db_column": "dob",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY"
+    },
+    {
+      "form_field": "5. Place of birth",
+      "api_key": "place_of_birth",
+      "db_table": "travelers",
+      "db_column": "place_of_birth",
+      "transform": "toUpperCase()"
+    },
+    {
+      "form_field": "6. Country of birth + 16. Issued by",
+      "api_key": "country_of_birth",
+      "db_table": "travelers",
+      "db_column": "country_of_birth",
+      "transform": "toUpperCase() — replaces BOTH fields (same value)"
+    },
+    {
+      "form_field": "7. Current nationality",
+      "api_key": "nationality",
+      "db_table": "travelers",
+      "db_column": "nationality",
+      "transform": "toUpperCase() + append 'N' if needed (INDIA→INDIAN). Skips if already ends with AN/SH/SE/CH"
+    },
+    {
+      "form_field": "13. Number of travel document",
+      "api_key": "passport_number",
+      "db_table": "travelers",
+      "db_column": "passport_no",
+      "transform": "as-is"
+    },
+    {
+      "form_field": "14. Date of issue",
+      "api_key": "date_of_issue",
+      "db_table": "travelers",
+      "db_column": "passport_issue",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY"
+    },
+    {
+      "form_field": "15. Valid until",
+      "api_key": "valid_until",
+      "db_table": "travelers",
+      "db_column": "passport_expire",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY"
+    },
+    {
+      "form_field": "19. Telephone no.",
+      "api_key": "telephone",
+      "db_table": "travelers",
+      "db_columns": ["country_code", "contact_number"],
+      "transform": "Combined as '+{country_code} {contact_number}'. Defaults to +44"
+    },
+    {
+      "form_field": "19. Email address",
+      "api_key": "email",
+      "db_table": "travelers",
+      "db_column": "email",
+      "transform": "as-is"
+    },
+    {
+      "form_field": "19. Home address",
+      "api_key": "home_address",
+      "db_table": "travelers",
+      "db_columns": ["address_line_1", "address_line_2", "city", "state_province", "zip_code"],
+      "transform": "Joined with ', ' (nulls skipped)"
+    },
+    {
+      "form_field": "20. Residence permit No.",
+      "api_key": "residence_permit",
+      "db_table": "traveler_questions",
+      "db_column": "share_code",
+      "transform": "formatShareCode() — removes spaces, reformats as 'ABC DEF GHI'"
+    },
+    {
+      "form_field": "20. Valid until",
+      "api_key": "residence_valid_until",
+      "db_table": "traveler_questions",
+      "db_column": "evisa_expiry_date",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY"
+    },
+    {
+      "form_field": "21. Current occupation",
+      "api_key": "occupation",
+      "db_table": "traveler_questions",
+      "db_column": "occupation_title",
+      "transform": "toUpperCase()"
+    },
+    {
+      "form_field": "22. Employer name",
+      "api_key": "employer_name",
+      "db_table": "traveler_questions",
+      "db_column": "company_name",
+      "transform": "toUpperCase()"
+    },
+    {
+      "form_field": "22. Employer address",
+      "api_key": "employer_address",
+      "db_table": "traveler_questions",
+      "db_columns": ["company_address_1", "company_city", "company_zip"],
+      "transform": "Joined with ', ' then toUpperCase()"
+    },
+    {
+      "form_field": "22. Employer telephone",
+      "api_key": "employer_telephone",
+      "db_table": "traveler_questions",
+      "db_column": "company_phone",
+      "transform": "as-is"
+    },
+    {
+      "form_field": "25. Member State of main destination",
+      "api_key": "main_destination",
+      "db_table": null,
+      "db_column": null,
+      "transform": "HARDCODED: 'Portugal'"
+    },
+    {
+      "form_field": "26. Member State of first entry",
+      "api_key": "first_entry",
+      "db_table": null,
+      "db_column": null,
+      "transform": "HARDCODED: 'Portugal'"
+    },
+    {
+      "form_field": "28. Intended date of arrival",
+      "api_key": "arrival_date",
+      "db_table": "traveler_questions",
+      "db_column": "travel_date_from",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY"
+    },
+    {
+      "form_field": "28. Intended date of departure",
+      "api_key": "departure_date",
+      "db_table": "traveler_questions",
+      "db_column": "travel_date_to",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY"
+    },
+    {
+      "form_field": "31. Hotel/Inviting person name",
+      "api_key": "hotel_name",
+      "db_table": "traveler_questions",
+      "db_column": "hotel_name → fallback: inviting_person_first_name + inviting_person_surname",
+      "transform": "If hotel_name exists, use it. Otherwise combine inviting person first+last name (skip 'N/A' values)"
+    },
+    {
+      "form_field": "31. Hotel/Inviting person address",
+      "api_key": "hotel_address",
+      "db_table": "traveler_questions",
+      "db_columns_primary": ["hotel_address_1", "hotel_city", "hotel_zip"],
+      "db_columns_fallback": ["inviting_person_address_1", "inviting_person_address_2", "inviting_person_city", "inviting_person_state", "inviting_person_zip"],
+      "transform": "If hotel address exists, use it (skips city/zip if already in address_1). Otherwise join inviting person address parts (skip 'N/A' values)"
+    },
+    {
+      "form_field": "31. Hotel/Inviting person telephone",
+      "api_key": "hotel_telephone",
+      "db_table": "traveler_questions",
+      "db_column": "hotel_contact_number → fallback: inviting_person_phone_code + inviting_person_phone",
+      "transform": "If hotel phone exists, use it. Otherwise combine as '+{phone_code} {phone}' (defaults to +44)"
+    },
+    {
+      "form_field": "Place and date (signature)",
+      "api_key": "place_date",
+      "db_table": "travelers",
+      "db_column": "visa_center",
+      "transform": "as-is. Falls back to null (template default stays)"
+    },
+    {
+      "form_field": "Date of signing",
+      "api_key": "sign_date",
+      "db_table": "travelers",
+      "db_column": "doc_date",
+      "transform": "YYYY-MM-DD → DD/MM/YYYY. Falls back to null (template default stays)"
+    }
+  ],
+
+  "checkbox_fields": [
+    {
+      "form_field": "8. Sex",
+      "api_key": "sex",
+      "db_table": "travelers",
+      "db_column": "gender",
+      "options": ["male", "female", "other"],
+      "transform": "toLowerCase(). 'Male'→'male', 'Female'→'female', else→'other'"
+    },
+    {
+      "form_field": "9. Civil status",
+      "api_key": "civil_status",
+      "db_table": "traveler_questions",
+      "db_column": "marital_status",
+      "options": ["single", "married", "registered", "separated", "divorced", "widow", "other"],
+      "transform": "toLowerCase() + includes() match"
+    },
+    {
+      "form_field": "12. Type of travel document",
+      "api_key": "travel_doc_type",
+      "db_table": null,
+      "db_column": null,
+      "options": ["ordinary", "diplomatic", "service", "official", "special", "other"],
+      "transform": "HARDCODED: 'ordinary'"
+    },
+    {
+      "form_field": "20. Residence in other country",
+      "api_key": "residence",
+      "db_table": null,
+      "db_column": null,
+      "options": ["yes", "no"],
+      "transform": "HARDCODED: 'yes'"
+    },
+    {
+      "form_field": "23. Purpose of journey",
+      "api_key": "purpose",
+      "db_table": null,
+      "db_column": null,
+      "options": ["tourism", "business", "visiting", "sports", "official", "medical", "study", "airport_transit", "other"],
+      "transform": "HARDCODED: 'tourism'"
+    },
+    {
+      "form_field": "27. Number of entries requested",
+      "api_key": "num_entries",
+      "db_table": null,
+      "db_column": null,
+      "options": ["single", "two", "multiple"],
+      "transform": "HARDCODED: 'multiple'"
+    },
+    {
+      "form_field": "29. Fingerprints collected previously",
+      "api_key": "fingerprints",
+      "db_table": "traveler_questions",
+      "db_column": "fingerprints_taken",
+      "options": ["yes", "no"],
+      "transform": "'Yes'→'yes', else→'no'"
+    },
+    {
+      "form_field": "33. Cost of travelling (applicant)",
+      "api_key": "cost_applicant",
+      "db_table": null,
+      "db_column": null,
+      "options": ["by_applicant", "cash", "travellers_cheques", "credit_card", "pre_paid_accommodation", "pre_paid_transport", "other"],
+      "transform": "HARDCODED: ['by_applicant', 'cash', 'pre_paid_accommodation', 'pre_paid_transport'] — always all 4 ticked"
+    },
+    {
+      "form_field": "33. Cost of travelling (sponsor)",
+      "api_key": "cost_sponsor",
+      "db_table": null,
+      "db_column": null,
+      "options": ["by_sponsor", "referred_to_applicant", "other", "cash", "accommodation", "all_expenses", "pre_paid_transport", "other_specify"],
+      "transform": "NOT MAPPED — no DB field. Pass via POST API if needed"
+    }
+  ],
+
+  "extra_fields": [
+    {
+      "form_field": "29. Fingerprints date",
+      "api_key": "fingerprints_date",
+      "db_table": null,
+      "db_column": null,
+      "transform": "NOT IN DB — pass via POST API only (e.g. '14/04/2025')"
+    },
+    {
+      "form_field": "29. Fingerprints visa number",
+      "api_key": "fingerprints_visa_number",
+      "db_table": null,
+      "db_column": null,
+      "transform": "NOT IN DB — pass via POST API only (e.g. 'CHE008168337')"
+    }
+  ],
+
+  "static_fields": [
+    {
+      "form_field": "20. Residence permit type label",
+      "value": "UK EVISA",
+      "note": "Always stays as 'UK EVISA' — not replaced"
+    },
+    {
+      "form_field": "20. SHARECODE label",
+      "value": "SHARECODE",
+      "note": "Always stays as 'SHARECODE' — not replaced"
+    }
+  ],
+
+  "unmapped_db_fields": [
+    { "table": "travelers", "column": "relationship_to_main", "note": "Not on this form" },
+    { "table": "traveler_questions", "column": "occupation_status", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "company_address_2", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "company_state", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "company_email", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "primary_destination", "note": "Stores city not country — not used" },
+    { "table": "traveler_questions", "column": "stay_type", "note": "Not mapped to checkbox" },
+    { "table": "traveler_questions", "column": "has_stay_booking", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "hotel_address_2", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "hotel_state", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "hotel_booking_reference", "note": "Not on this form" },
+    { "table": "traveler_questions", "column": "inviting_person_*", "note": "Not mapped — field 31 uses hotel data" },
+    { "table": "traveler_questions", "column": "inviting_company_*", "note": "Not mapped — field 32" },
+    { "table": "traveler_questions", "column": "sponsor_*", "note": "Not mapped — field 33 sponsor section" },
+    { "table": "traveler_questions", "column": "host_*", "note": "Not mapped" },
+    { "table": "traveler_questions", "column": "schengen_visa_image", "note": "File path only — no date/visa number extracted" },
+    { "table": "traveler_questions", "column": "evisa_issue_date", "note": "Not needed on form" },
+    { "table": "traveler_questions", "column": "share_code_expiry_date", "note": "Using evisa_expiry_date instead" },
+    { "table": "traveler_questions", "column": "travel_covered_by", "note": "Not used — cost checkboxes are hardcoded" },
+    { "table": "traveler_questions", "column": "has_credit_card", "note": "Not used — cost checkboxes are hardcoded" }
+  ]
+}
