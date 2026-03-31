@@ -1229,14 +1229,24 @@ document.addEventListener('DOMContentLoaded', function() {
       toast.style.display = 'none';
       formatBar.classList.remove('show');
 
+      // Force all pdf2htmlEX pages visible (they hide .pc without .opened class)
+      var allPc = document.querySelectorAll('.pc');
+      allPc.forEach(function(pc) { pc.classList.add('opened'); });
+
       for (var i = 0; i < pages.length; i++) {
         if (i > 0) pdf.addPage([pages[i].offsetWidth, pages[i].offsetHeight]);
+
+        // Scroll page into view so it renders for html2canvas
+        pages[i].scrollIntoView();
+        await new Promise(function(r) { setTimeout(r, 100); });
 
         var canvas = await html2canvas(pages[i], {
           scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: -window.scrollY,
           ignoreElements: function(el) {
             return el.id === 'elfill-toolbar' || el.id === 'elfill-toast' ||
                    el.id === 'elfill-formatbar' || el.id === 'elfill-loading';
