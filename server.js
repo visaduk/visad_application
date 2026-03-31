@@ -10,6 +10,10 @@ app.use(express.json());
 app.use(cors());
 app.use('/libs', express.static(path.join(__dirname, 'node_modules')));
 
+// Pre-load libraries for inline injection (blob URLs can't load external scripts)
+const HTML2CANVAS_JS = fs.readFileSync(path.join(__dirname, 'node_modules/html2canvas/dist/html2canvas.min.js'), 'utf-8');
+const JSPDF_JS = fs.readFileSync(path.join(__dirname, 'node_modules/jspdf/dist/jspdf.umd.min.js'), 'utf-8');
+
 const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
@@ -1198,39 +1202,16 @@ document.addEventListener('DOMContentLoaded', function() {
     loading.classList.remove('show');
   }
 
-  function loadScript(src) {
-    return new Promise(function(resolve, reject) {
-      var s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
   document.getElementById('elfill-save').addEventListener('click', async function() {
     var btn = this;
     btn.disabled = true;
-    showLoading('Loading libraries...');
+    showLoading('Preparing PDF...');
 
     try {
       // Hide toolbar and edit indicators for capture
       toolbar.style.display = 'none';
       toast.style.display = 'none';
       formatBar.classList.remove('show');
-      var style = document.createElement('style');
-      style.id = 'elfill-capture-hide';
-      style.textContent = '[data-editable],[data-editable]:hover,.elfill-added,.elfill-added:hover{outline:none!important;box-shadow:none!important;background:transparent!important;}#elfill-loading{background:transparent!important;backdrop-filter:none!important;}.spinner,.loading-text,.loading-progress{display:none!important;}';
-      document.head.appendChild(style);
-
-      // Load libraries if not already loaded
-      if (!window.html2canvas) {
-        await loadScript('/libs/html2canvas/dist/html2canvas.min.js');
-      }
-      if (!window.jspdf) {
-        await loadScript('/libs/jspdf/dist/jspdf.umd.min.js');
-      }
-
       var pages = document.querySelectorAll('.pf');
       var pdf = new window.jspdf.jsPDF({
         orientation: 'portrait',
@@ -1238,46 +1219,41 @@ document.addEventListener('DOMContentLoaded', function() {
         format: [pages[0].offsetWidth, pages[0].offsetHeight]
       });
 
-      // Restore loading overlay visibility for progress updates
-      var hideStyle = document.getElementById('elfill-capture-hide');
-      if (hideStyle) hideStyle.remove();
-      showLoading('Capturing page 1 of ' + pages.length + '...');
+      // Hide ALL overlays and edit indicators during capture
+      var capStyle = document.createElement('style');
+      capStyle.id = 'elfill-capture-hide';
+      capStyle.textContent = '[data-editable],[data-editable]:hover,.elfill-added,.elfill-added:hover{outline:none!important;box-shadow:none!important;background:transparent!important;}';
+      document.head.appendChild(capStyle);
+      loading.classList.remove('show');
+      toolbar.style.display = 'none';
+      toast.style.display = 'none';
+      formatBar.classList.remove('show');
 
       for (var i = 0; i < pages.length; i++) {
-        showLoading('Capturing page ' + (i + 1) + ' of ' + pages.length + '...');
-
-        // Re-hide UI for each page capture
-        toolbar.style.display = 'none';
-        var capStyle = document.createElement('style');
-        capStyle.id = 'elfill-capture-hide';
-        capStyle.textContent = '[data-editable],[data-editable]:hover,.elfill-added,.elfill-added:hover{outline:none!important;box-shadow:none!important;background:transparent!important;}';
-        document.head.appendChild(capStyle);
-
         if (i > 0) pdf.addPage([pages[i].offsetWidth, pages[i].offsetHeight]);
 
         var canvas = await html2canvas(pages[i], {
           scale: 2,
           useCORS: true,
           logging: false,
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          ignoreElements: function(el) {
+            return el.id === 'elfill-toolbar' || el.id === 'elfill-toast' ||
+                   el.id === 'elfill-formatbar' || el.id === 'elfill-loading';
+          }
         });
-
-        var cs = document.getElementById('elfill-capture-hide');
-        if (cs) cs.remove();
 
         var imgData = canvas.toDataURL('image/jpeg', 0.95);
         pdf.addImage(imgData, 'JPEG', 0, 0, pages[i].offsetWidth, pages[i].offsetHeight);
       }
 
-      showLoading('Opening PDF...');
+      showLoading('Downloading PDF...');
 
-      // Open PDF in new Chrome tab instead of downloading
-      var pdfBlob = pdf.output('blob');
-      var pdfUrl = URL.createObjectURL(pdfBlob);
-      window.open(pdfUrl, '_blank');
+      // Download the PDF file
+      pdf.save('visa-application.pdf');
 
       hideLoading();
-      showToast('PDF opened in new tab!');
+      showToast('PDF downloaded!');
     } catch (err) {
       console.error('PDF generation failed:', err);
       hideLoading();
@@ -1516,13 +1492,16 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>`;
 
+  // Inline html2canvas and jspdf so they work from blob URLs
+  const libs = `<script>${HTML2CANVAS_JS}</script><script>${JSPDF_JS}</script>`;
+
   // Insert before closing </body> or </html>
   if (html.includes('</body>')) {
-    html = html.replace('</body>', script + '</body>');
+    html = html.replace('</body>', libs + script + '</body>');
   } else if (html.includes('</html>')) {
-    html = html.replace('</html>', script + '</html>');
+    html = html.replace('</html>', libs + script + '</html>');
   } else {
-    html += script;
+    html += libs + script;
   }
 
   return html;
