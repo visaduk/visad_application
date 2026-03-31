@@ -154,8 +154,23 @@ const CHECKBOXES = {
 
 // ── Helper functions ──
 
+// Mark a div containing oldVal as editable (adds data-editable attribute)
+function markDivEditable(html, oldVal, type) {
+  const escaped = oldVal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(<div )(class="t [^"]*">[^<]*${escaped})`, 'g');
+  return html.replace(re, `$1data-editable="${type}" $2`);
+}
+
+// Tag all checkbox divs (containing ☐ or ☑) as editable
+function tagAllCheckboxDivs(html) {
+  return html.replace(
+    /(<div )(class="t [^"]*">\s*[\u2610\u2611])/g,
+    '$1data-editable="checkbox" $2'
+  );
+}
+
 function replaceText(html, data) {
-  // Simple text replacements
+  // Simple text replacements — mark editable BEFORE replacing
   const simpleMap = [
     ['surname',             THARSHIGA_TEXT.surname],
     ['first_name',          THARSHIGA_TEXT.first_name],
@@ -178,50 +193,58 @@ function replaceText(html, data) {
 
   for (const [field, oldVal] of simpleMap) {
     if (data[field]) {
+      html = markDivEditable(html, oldVal, 'text');
       html = html.replaceAll(oldVal, data[field]);
     }
   }
 
   // country_of_birth also replaces "issued_by" since both are "SRI LANKA"
   if (data.country_of_birth) {
+    html = markDivEditable(html, THARSHIGA_TEXT.country_of_birth, 'text');
     html = html.replaceAll(THARSHIGA_TEXT.country_of_birth, data.country_of_birth);
   }
 
   // Anchor-based replacements (unique HTML patterns)
   if (data.first_entry) {
-    html = html.replace(THARSHIGA_TEXT.first_entry, `>${data.first_entry}</div>`);
+    html = html.replace(THARSHIGA_TEXT.first_entry, ` data-editable="text">${data.first_entry}</div>`);
   }
   if (data.place_date) {
-    html = html.replace(THARSHIGA_TEXT.place_date, `>${data.place_date}</div>`);
+    html = html.replace(THARSHIGA_TEXT.place_date, ` data-editable="text">${data.place_date}</div>`);
   }
 
   // Span-split replacements
   if (data.home_address) {
+    html = markDivEditable(html, '107,', 'text');
     html = html.replace(THARSHIGA_SPAN.home_address.old, data.home_address);
   }
   if (data.employer_name && data.employer_address) {
+    html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
     html = html.replace(THARSHIGA_SPAN.employer.old, `${data.employer_name},${data.employer_address}`);
   } else if (data.employer_name) {
+    html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
     html = html.replace('OKEHAMPTON ROAD POST OFFICE', data.employer_name);
   }
   if (data.main_destination) {
+    html = markDivEditable(html, 'Portugal,', 'text');
     html = html.replace(THARSHIGA_SPAN.main_destination.old, data.main_destination);
   }
-  // Hotel phone + address are in ONE div: phone<span>address</span>
-  // Replace the entire content with new phone + address
+  // Hotel phone + address are in ONE div
   const newPhone = data.hotel_telephone || '';
   const newAddr = data.hotel_address || '';
+  html = markDivEditable(html, '+351', 'text');
   html = html.replace(
     THARSHIGA_SPAN.hotel_phone_and_address.old,
     `${newPhone}<span class="_ _13"></span><span class="ff8">${newAddr}</span>`
   );
-  // Hotel email (separate line below)
+  // Hotel email line
   if (data.hotel_email) {
+    html = markDivEditable(html, 'Lisbon,reservas', 'text');
     html = html.replace(THARSHIGA_SPAN.hotel_email.old, data.hotel_email);
   } else {
     html = html.replace(THARSHIGA_SPAN.hotel_email.old, '');
   }
-  // Replace hotel name — clear if no data
+  // Hotel name
+  html = markDivEditable(html, 'Residencial do Areeiro', 'text');
   html = html.replace(THARSHIGA_SPAN.hotel_name.old, data.hotel_name || '');
 
   return html;
@@ -274,10 +297,10 @@ function handleCheckboxes(html, data) {
       if (containerEnd !== -1) {
         let overlays = '';
         if (data.fingerprints_date) {
-          overlays += `<div style="position:absolute;bottom:1075.47px;left:215px;font-size:10px;font-family:'Times New Roman',serif;color:#000;z-index:10;">${data.fingerprints_date}</div>`;
+          overlays += `<div data-editable="text" style="position:absolute;bottom:1075.47px;left:215px;font-size:10px;font-family:'Times New Roman',serif;color:#000;z-index:10;">${data.fingerprints_date}</div>`;
         }
         if (data.fingerprints_visa_number) {
-          overlays += `<div style="position:absolute;bottom:1075.47px;left:512px;font-size:10px;font-family:'Times New Roman',serif;color:#000;z-index:10;">${data.fingerprints_visa_number}</div>`;
+          overlays += `<div data-editable="text" style="position:absolute;bottom:1075.47px;left:512px;font-size:10px;font-family:'Times New Roman',serif;color:#000;z-index:10;">${data.fingerprints_visa_number}</div>`;
         }
         if (overlays) {
           html = html.substring(0, containerEnd) + overlays + html.substring(containerEnd);
@@ -360,6 +383,7 @@ app.post('/fill-form', (req, res) => {
 
   html = replaceText(html, data);
   html = handleCheckboxes(html, data);
+  html = tagAllCheckboxDivs(html);
   html = addAutoFitScript(html);
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -551,6 +575,7 @@ app.get('/fill-form/:id', async (req, res) => {
 
     html = replaceText(html, formData);
     html = handleCheckboxes(html, formData);
+    html = tagAllCheckboxDivs(html);
     html = addAutoFitScript(html);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -648,6 +673,7 @@ app.get('/fill-form/dependent/:id', async (req, res) => {
 
     html = replaceText(html, formData);
     html = handleCheckboxes(html, formData);
+    html = tagAllCheckboxDivs(html);
     html = addAutoFitScript(html);
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -692,51 +718,640 @@ app.get('/travelers', async (req, res) => {
 
 function addAutoFitScript(html) {
   const script = `
+<style>
+/* ── Editable field indicators ── */
+[data-editable="text"] {
+  transition: all 0.15s ease;
+  border-radius: 2px;
+  cursor: move;
+}
+[data-editable="text"]:hover {
+  background: rgba(59, 130, 246, 0.06);
+  outline: 1.5px dashed rgba(59, 130, 246, 0.5);
+  outline-offset: 1px;
+}
+[data-editable="text"][contenteditable="true"] {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-radius: 2px;
+  cursor: text;
+}
+[data-editable="text"].dragging {
+  opacity: 0.7;
+  outline: 2px solid #3b82f6;
+}
+
+/* Checkbox hover & toggle */
+[data-editable="checkbox"] {
+  transition: all 0.1s ease;
+  border-radius: 2px;
+}
+[data-editable="checkbox"]:hover {
+  background: rgba(59, 130, 246, 0.08);
+  outline: 1.5px dashed rgba(59, 130, 246, 0.5);
+  outline-offset: 1px;
+  cursor: pointer;
+}
+
+/* ── Toolbar ── */
+#elfill-toolbar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 99999;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  backdrop-filter: blur(8px);
+}
+#elfill-toolbar .elfill-logo {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1e293b;
+  letter-spacing: -0.3px;
+  padding-right: 6px;
+  border-right: 1px solid #e2e8f0;
+  margin-right: 2px;
+}
+#elfill-toolbar button {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+#elfill-toolbar .save-btn {
+  background: #3b82f6;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(59,130,246,0.3);
+}
+#elfill-toolbar .save-btn:hover {
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+  transform: translateY(-1px);
+}
+#elfill-toolbar .save-btn:active {
+  transform: translateY(0);
+}
+#elfill-toolbar .reset-btn {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+#elfill-toolbar .reset-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+#elfill-toolbar .edit-hint {
+  color: #94a3b8;
+  font-size: 11px;
+  max-width: 140px;
+  line-height: 1.3;
+}
+#elfill-toolbar .addtext-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+#elfill-toolbar .addtext-btn:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+#elfill-toolbar .addtext-btn.active {
+  background: #0ea5e9;
+  color: #fff;
+  border-color: #0284c7;
+  box-shadow: 0 1px 3px rgba(14,165,233,0.3);
+}
+
+/* Freeform text cursor when add-text mode is active */
+.elfill-addtext-mode .pc {
+  cursor: crosshair !important;
+}
+.elfill-addtext-mode .pc * {
+  cursor: crosshair !important;
+}
+/* Freeform added text */
+.elfill-added {
+  position: absolute;
+  z-index: 10;
+  white-space: pre-wrap;
+  cursor: move;
+  min-width: 20px;
+  min-height: 12px;
+  transition: outline 0.15s ease;
+}
+.elfill-added:hover {
+  outline: 1.5px dashed #0ea5e9;
+  outline-offset: 1px;
+}
+.elfill-added[contenteditable="true"] {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 1px;
+  background: rgba(14, 165, 233, 0.06);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+  cursor: text;
+}
+.elfill-added.dragging {
+  opacity: 0.7;
+  outline: 2px solid #0ea5e9;
+}
+
+/* ── Format bar (appears near selected freeform text) ── */
+#elfill-formatbar {
+  position: fixed;
+  z-index: 100000;
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 4px 6px;
+  display: none;
+  gap: 2px;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+#elfill-formatbar.show { display: flex; }
+#elfill-formatbar button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s ease;
+  font-family: Georgia, serif;
+}
+#elfill-formatbar button:hover { background: #334155; color: #fff; }
+#elfill-formatbar button.active { background: #3b82f6; color: #fff; }
+#elfill-formatbar .fmt-sep {
+  width: 1px;
+  height: 18px;
+  background: #475569;
+  margin: 0 3px;
+}
+#elfill-formatbar select {
+  background: #334155;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+#elfill-formatbar select:hover { background: #475569; }
+#elfill-formatbar .fmt-delete {
+  color: #f87171 !important;
+}
+#elfill-formatbar .fmt-delete:hover {
+  background: #dc2626 !important;
+  color: #fff !important;
+}
+
+/* ── Toast notification ── */
+#elfill-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 99999;
+  background: #1e293b;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+#elfill-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Hide everything edit-related when printing ── */
+@media print {
+  #elfill-toolbar { display: none !important; }
+  #elfill-toast { display: none !important; }
+  [data-editable] { outline: none !important; background: none !important; box-shadow: none !important; }
+  [data-editable]:hover { outline: none !important; background: none !important; transform: none !important; }
+  [data-editable][contenteditable] { outline: none !important; background: none !important; box-shadow: none !important; }
+  .elfill-added { outline: none !important; background: none !important; box-shadow: none !important; }
+  #elfill-formatbar { display: none !important; }
+  .elfill-added:hover { outline: none !important; }
+  .elfill-added[contenteditable] { outline: none !important; background: none !important; box-shadow: none !important; }
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Find all text divs inside .c containers (form field boxes)
+
+  // ── Auto-fit: wrap overflowing text ──
   document.querySelectorAll('.c .t').forEach(function(el) {
     if (!el.textContent.trim()) return;
-
     var container = el.closest('.c');
     if (!container) return;
-
-    var containerRect = container.getBoundingClientRect();
-    var elRect = el.getBoundingClientRect();
-
-    // Check if this text element overflows the container
-    if (elRect.right > containerRect.right + 2) {
-      // Allow wrapping to multiple lines instead of overflowing
-      var availWidth = containerRect.right - elRect.left;
-      if (availWidth > 20) {
+    var cRect = container.getBoundingClientRect();
+    var eRect = el.getBoundingClientRect();
+    if (eRect.right > cRect.right + 2) {
+      var avail = cRect.right - eRect.left;
+      if (avail > 20) {
         el.style.whiteSpace = 'normal';
         el.style.wordWrap = 'break-word';
-        el.style.width = availWidth + 'px';
+        el.style.width = avail + 'px';
         el.style.lineHeight = '1.2';
       }
     }
   });
-
-  // Also check text divs directly inside .pc (page container, not inside .c)
   document.querySelectorAll('.pc > .t').forEach(function(el) {
     if (!el.textContent.trim()) return;
-
     var page = el.closest('.pf');
     if (!page) return;
-
-    var pageRect = page.getBoundingClientRect();
-    var elRect = el.getBoundingClientRect();
-
-    if (elRect.right > pageRect.right + 2) {
-      var availWidth = pageRect.right - elRect.left;
-      if (availWidth > 20) {
+    var pRect = page.getBoundingClientRect();
+    var eRect = el.getBoundingClientRect();
+    if (eRect.right > pRect.right + 2) {
+      var avail = pRect.right - eRect.left;
+      if (avail > 20) {
         el.style.whiteSpace = 'normal';
         el.style.wordWrap = 'break-word';
-        el.style.width = availWidth + 'px';
+        el.style.width = avail + 'px';
         el.style.lineHeight = '1.2';
       }
     }
   });
+
+  // ── Editable text fields (drag + format + edit) ──
+  var originals = new Map();
+
+  document.querySelectorAll('[data-editable="text"]').forEach(function(el) {
+    originals.set(el, el.innerHTML);
+
+    var isDragging = false, hasDragged = false, dragStartX, dragStartY, origLeft, origBottom;
+    var pc = el.closest('.pc');
+
+    // ── Mousedown: start drag ──
+    el.addEventListener('mousedown', function(e) {
+      if (el.contentEditable === 'true') return;
+      if (e.target.closest('#elfill-formatbar')) return;
+      isDragging = true;
+      hasDragged = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      // Get current position from computed style
+      var cs = window.getComputedStyle(el);
+      origLeft = parseFloat(cs.left) || 0;
+      origBottom = parseFloat(cs.bottom) || 0;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      var dx = e.clientX - dragStartX;
+      var dy = e.clientY - dragStartY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        hasDragged = true;
+        el.classList.add('dragging');
+        var pcRect = pc ? pc.getBoundingClientRect() : null;
+        var scaleX = pcRect ? pcRect.width / pc.offsetWidth : 1;
+        var scaleY = pcRect ? pcRect.height / pc.offsetHeight : 1;
+        el.style.left = (origLeft + dx / scaleX) + 'px';
+        el.style.bottom = (origBottom - dy / scaleY) + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', function(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      el.classList.remove('dragging');
+    });
+
+    // ── Single click: show format bar (if not dragged) ──
+    el.addEventListener('click', function(e) {
+      if (hasDragged) { hasDragged = false; return; }
+      if (el.contentEditable === 'true') return;
+      showFormatBar(el);
+    });
+
+    // ── Double-click: edit text ──
+    el.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      hideFormatBar();
+      el._origWS = el.style.whiteSpace || '';
+      el.style.whiteSpace = 'pre-wrap';
+      el.contentEditable = 'true';
+      el.focus();
+      var range = document.createRange();
+      range.selectNodeContents(el);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+
+    // ── Blur: stop editing ──
+    el.addEventListener('blur', function() {
+      el.contentEditable = 'false';
+      el.style.whiteSpace = el._origWS || '';
+      if (el.innerHTML !== originals.get(el)) {
+        showToast('Field updated');
+      }
+    });
+
+    // ── Keyboard ──
+    el.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+      if (e.key === 'Escape') { el.innerHTML = originals.get(el); el.blur(); }
+    });
+  });
+
+  // ── Editable checkboxes ──
+  document.querySelectorAll('[data-editable="checkbox"]').forEach(function(el) {
+    originals.set(el, el.innerHTML);
+    el.style.cursor = 'pointer';
+
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var html = el.innerHTML;
+      if (html.indexOf('\u2611') !== -1) {
+        el.innerHTML = html.replace('\u2611', '\u2610');
+      } else if (html.indexOf('\u2610') !== -1) {
+        el.innerHTML = html.replace('\u2610', '\u2611');
+      }
+    });
+  });
+
+  // ── Toast notification ──
+  var toast = document.createElement('div');
+  toast.id = 'elfill-toast';
+  document.body.appendChild(toast);
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 2000);
+  }
+
+  // ── Toolbar ──
+  var toolbar = document.createElement('div');
+  toolbar.id = 'elfill-toolbar';
+  toolbar.innerHTML =
+    '<span class="elfill-logo">elfill</span>' +
+    '<span class="edit-hint">Click any value to edit</span>' +
+    '<button class="addtext-btn" id="elfill-addtext">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><path d="M12 5v14M5 12h14"/></svg>' +
+      'Add Text</button>' +
+    '<button class="save-btn" id="elfill-save">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M6 9l6 6 6-6"/></svg>' +
+      'Save as PDF</button>' +
+    '<button class="reset-btn" id="elfill-reset">' +
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:3px;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>' +
+      'Reset</button>';
+  document.body.appendChild(toolbar);
+
+  document.getElementById('elfill-save').addEventListener('click', function() {
+    window.print();
+  });
+
+  document.getElementById('elfill-reset').addEventListener('click', function() {
+    if (!confirm('Reset all changes to original values?')) return;
+    originals.forEach(function(html, el) {
+      el.innerHTML = html;
+      el.contentEditable = 'false';
+    });
+    // Remove all freeform-added text
+    document.querySelectorAll('.elfill-added').forEach(function(el) { el.remove(); });
+    showToast('All changes reverted');
+  });
+
+  // ── Format bar ──
+  var formatBar = document.createElement('div');
+  formatBar.id = 'elfill-formatbar';
+  formatBar.innerHTML =
+    '<button id="fmt-bold" title="Bold (Ctrl+B)"><b>B</b></button>' +
+    '<button id="fmt-italic" title="Italic (Ctrl+I)"><i>I</i></button>' +
+    '<button id="fmt-underline" title="Underline (Ctrl+U)"><u>U</u></button>' +
+    '<div class="fmt-sep"></div>' +
+    '<select id="fmt-size" title="Font size">' +
+      '<option value="20">Small</option>' +
+      '<option value="26">Medium</option>' +
+      '<option value="30" selected>Normal</option>' +
+      '<option value="38">Large</option>' +
+      '<option value="48">XL</option>' +
+    '</select>' +
+    '<div class="fmt-sep"></div>' +
+    '<button id="fmt-delete" class="fmt-delete" title="Delete">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+    '</button>';
+  document.body.appendChild(formatBar);
+
+  var activeEl = null;
+
+  function showFormatBar(el) {
+    activeEl = el;
+    var rect = el.getBoundingClientRect();
+    formatBar.style.left = rect.left + 'px';
+    formatBar.style.top = (rect.top - 40) + 'px';
+    formatBar.classList.add('show');
+    // Update button states
+    var cs = window.getComputedStyle(el);
+    document.getElementById('fmt-bold').classList.toggle('active', cs.fontWeight === 'bold' || parseInt(cs.fontWeight) >= 700);
+    document.getElementById('fmt-italic').classList.toggle('active', cs.fontStyle === 'italic');
+    document.getElementById('fmt-underline').classList.toggle('active', cs.textDecoration.includes('underline'));
+  }
+
+  function hideFormatBar() {
+    formatBar.classList.remove('show');
+    activeEl = null;
+  }
+
+  document.getElementById('fmt-bold').addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    if (!activeEl) return;
+    var isBold = window.getComputedStyle(activeEl).fontWeight >= 700;
+    activeEl.style.fontWeight = isBold ? 'normal' : 'bold';
+    this.classList.toggle('active');
+  });
+
+  document.getElementById('fmt-italic').addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    if (!activeEl) return;
+    var isItalic = window.getComputedStyle(activeEl).fontStyle === 'italic';
+    activeEl.style.fontStyle = isItalic ? 'normal' : 'italic';
+    this.classList.toggle('active');
+  });
+
+  document.getElementById('fmt-underline').addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    if (!activeEl) return;
+    var isUnder = window.getComputedStyle(activeEl).textDecoration.includes('underline');
+    activeEl.style.textDecoration = isUnder ? 'none' : 'underline';
+    this.classList.toggle('active');
+  });
+
+  document.getElementById('fmt-size').addEventListener('change', function(e) {
+    if (!activeEl) return;
+    activeEl.style.fontSize = this.value + 'px';
+  });
+
+  document.getElementById('fmt-delete').addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    if (!activeEl) return;
+    activeEl.remove();
+    hideFormatBar();
+    showToast('Text removed');
+  });
+
+  // Hide format bar when clicking elsewhere
+  document.addEventListener('mousedown', function(e) {
+    if (e.target.closest('#elfill-formatbar') || e.target.closest('.elfill-added')) return;
+    hideFormatBar();
+  });
+
+  // ── Add Text mode ──
+  var addTextMode = false;
+  var addTextBtn = document.getElementById('elfill-addtext');
+
+  addTextBtn.addEventListener('click', function() {
+    addTextMode = !addTextMode;
+    addTextBtn.classList.toggle('active', addTextMode);
+    document.body.classList.toggle('elfill-addtext-mode', addTextMode);
+    if (addTextMode) {
+      showToast('Click anywhere on the form to add text');
+    }
+  });
+
+  function setupFreeformEl(newEl, pc) {
+    // ── Drag to move ──
+    var isDragging = false, dragStartX, dragStartY, origLeft, origBottom;
+
+    newEl.addEventListener('mousedown', function(e) {
+      if (newEl.contentEditable === 'true') return; // don't drag while editing
+      if (e.target.closest('#elfill-formatbar')) return;
+      isDragging = true;
+      newEl.classList.add('dragging');
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      origLeft = parseFloat(newEl.style.left) || 0;
+      origBottom = parseFloat(newEl.style.bottom) || 0;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      var dx = e.clientX - dragStartX;
+      var dy = e.clientY - dragStartY;
+      // Account for page scale — the pc container may be scaled
+      var pcRect = pc.getBoundingClientRect();
+      var scaleX = pcRect.width / pc.offsetWidth;
+      var scaleY = pcRect.height / pc.offsetHeight;
+      newEl.style.left = (origLeft + dx / scaleX) + 'px';
+      newEl.style.bottom = (origBottom - dy / scaleY) + 'px';
+    });
+
+    document.addEventListener('mouseup', function(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      newEl.classList.remove('dragging');
+    });
+
+    // ── Double-click to edit text ──
+    newEl.addEventListener('dblclick', function(e) {
+      e.stopPropagation();
+      newEl.contentEditable = 'true';
+      newEl.focus();
+      var range = document.createRange();
+      range.selectNodeContents(newEl);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+
+    // ── Single click: show format bar ──
+    newEl.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (newEl.contentEditable !== 'true') {
+        showFormatBar(newEl);
+      }
+    });
+
+    // ── Blur: stop editing ──
+    newEl.addEventListener('blur', function() {
+      if (!newEl.textContent.trim()) {
+        newEl.remove();
+        hideFormatBar();
+      } else {
+        newEl.contentEditable = 'false';
+        showToast('Text updated');
+      }
+    });
+
+    // ── Keyboard shortcuts ──
+    newEl.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); newEl.blur(); }
+      if (e.key === 'Escape') { newEl.remove(); hideFormatBar(); }
+    });
+  }
+
+  // Listen for clicks on page containers when in add-text mode
+  document.querySelectorAll('.pc').forEach(function(pc) {
+    pc.addEventListener('click', function(e) {
+      if (!addTextMode) return;
+      if (e.target.closest('[data-editable]') || e.target.closest('.elfill-added')) return;
+
+      var pcRect = pc.getBoundingClientRect();
+      var scaleX = pcRect.width / pc.offsetWidth;
+      var scaleY = pcRect.height / pc.offsetHeight;
+      var clickX = (e.clientX - pcRect.left) / scaleX;
+      var clickY = (e.clientY - pcRect.top) / scaleY;
+      var pcHeight = pc.offsetHeight;
+      var bottomPos = pcHeight - clickY;
+
+      var newEl = document.createElement('div');
+      newEl.className = 'elfill-added';
+      newEl.style.cssText =
+        'left:' + clickX + 'px;' +
+        'bottom:' + bottomPos + 'px;' +
+        'font-family:ff6;' +
+        'font-size:30px;' +
+        'line-height:0.915527;' +
+        'transform:matrix(0.375,0,0,0.375,0,0);' +
+        'transform-origin:0 100%;' +
+        'color:#000;';
+      newEl.contentEditable = 'true';
+      newEl.setAttribute('data-freeform', 'true');
+      pc.appendChild(newEl);
+      newEl.focus();
+
+      setupFreeformEl(newEl, pc);
+
+      // Turn off add-text mode after placing
+      addTextMode = false;
+      addTextBtn.classList.remove('active');
+      document.body.classList.remove('elfill-addtext-mode');
+    });
+  });
+
 });
 </script>`;
 
