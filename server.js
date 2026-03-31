@@ -174,6 +174,11 @@ function tagAllCheckboxDivs(html) {
   );
 }
 
+// Wrap value in bold Cambria span
+function bold(val) {
+  return `<span style="font-family:Cambria,'Cambria Math',serif;font-weight:bold;">${val}</span>`;
+}
+
 function replaceText(html, data) {
   // Simple text replacements — mark editable BEFORE replacing
   const simpleMap = [
@@ -199,39 +204,39 @@ function replaceText(html, data) {
   for (const [field, oldVal] of simpleMap) {
     if (data[field]) {
       html = markDivEditable(html, oldVal, 'text');
-      html = html.replaceAll(oldVal, data[field]);
+      html = html.replaceAll(oldVal, bold(data[field]));
     }
   }
 
   // country_of_birth also replaces "issued_by" since both are "SRI LANKA"
   if (data.country_of_birth) {
     html = markDivEditable(html, THARSHIGA_TEXT.country_of_birth, 'text');
-    html = html.replaceAll(THARSHIGA_TEXT.country_of_birth, data.country_of_birth);
+    html = html.replaceAll(THARSHIGA_TEXT.country_of_birth, bold(data.country_of_birth));
   }
 
   // Anchor-based replacements (unique HTML patterns)
   if (data.first_entry) {
-    html = html.replace(THARSHIGA_TEXT.first_entry, ` data-editable="text">${data.first_entry}</div>`);
+    html = html.replace(THARSHIGA_TEXT.first_entry, ` data-editable="text">${bold(data.first_entry)}</div>`);
   }
   if (data.place_date) {
-    html = html.replace(THARSHIGA_TEXT.place_date, ` data-editable="text">${data.place_date}</div>`);
+    html = html.replace(THARSHIGA_TEXT.place_date, ` data-editable="text">${bold(data.place_date)}</div>`);
   }
 
   // Span-split replacements
   if (data.home_address) {
     html = markDivEditable(html, '107,', 'text');
-    html = html.replace(THARSHIGA_SPAN.home_address.old, data.home_address);
+    html = html.replace(THARSHIGA_SPAN.home_address.old, bold(data.home_address));
   }
   if (data.employer_name && data.employer_address) {
     html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
-    html = html.replace(THARSHIGA_SPAN.employer.old, `${data.employer_name},${data.employer_address}`);
+    html = html.replace(THARSHIGA_SPAN.employer.old, bold(`${data.employer_name},${data.employer_address}`));
   } else if (data.employer_name) {
     html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
-    html = html.replace('OKEHAMPTON ROAD POST OFFICE', data.employer_name);
+    html = html.replace('OKEHAMPTON ROAD POST OFFICE', bold(data.employer_name));
   }
   if (data.main_destination) {
     html = markDivEditable(html, 'Portugal,', 'text');
-    html = html.replace(THARSHIGA_SPAN.main_destination.old, data.main_destination);
+    html = html.replace(THARSHIGA_SPAN.main_destination.old, bold(data.main_destination));
   }
   // Hotel phone + address are in ONE div
   const newPhone = data.hotel_telephone || '';
@@ -239,18 +244,18 @@ function replaceText(html, data) {
   html = markDivEditable(html, '+351', 'text');
   html = html.replace(
     THARSHIGA_SPAN.hotel_phone_and_address.old,
-    `${newPhone}<span class="_ _13"></span><span class="ff8">${newAddr}</span>`
+    `${bold(newPhone)}<span class="_ _13"></span><span class="ff8">${bold(newAddr)}</span>`
   );
   // Hotel email line
   if (data.hotel_email) {
     html = markDivEditable(html, 'Lisbon,reservas', 'text');
-    html = html.replace(THARSHIGA_SPAN.hotel_email.old, data.hotel_email);
+    html = html.replace(THARSHIGA_SPAN.hotel_email.old, bold(data.hotel_email));
   } else {
     html = html.replace(THARSHIGA_SPAN.hotel_email.old, '');
   }
   // Hotel name
   html = markDivEditable(html, 'Residencial do Areeiro', 'text');
-  html = html.replace(THARSHIGA_SPAN.hotel_name.old, data.hotel_name || '');
+  html = html.replace(THARSHIGA_SPAN.hotel_name.old, bold(data.hotel_name || ''));
 
   return html;
 }
