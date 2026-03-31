@@ -8,6 +8,7 @@ const cors = require('cors');
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use('/libs', express.static(path.join(__dirname, 'node_modules')));
 
 const db = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
@@ -737,6 +738,13 @@ function addAutoFitScript(html) {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   border-radius: 2px;
   cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+[data-editable="text"]::selection,
+[data-editable="text"] *::selection {
+  background: rgba(59, 130, 246, 0.25);
+  color: inherit;
 }
 [data-editable="text"].dragging {
   opacity: 0.7;
@@ -928,6 +936,43 @@ function addAutoFitScript(html) {
   color: #fff !important;
 }
 
+/* ── Loading overlay ── */
+#elfill-loading {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 100001;
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+#elfill-loading.show { display: flex; }
+#elfill-loading .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: elfill-spin 0.8s linear infinite;
+}
+@keyframes elfill-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+#elfill-loading .loading-text {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+}
+#elfill-loading .loading-progress {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 /* ── Toast notification ── */
 #elfill-toast {
   position: fixed;
@@ -960,6 +1005,7 @@ function addAutoFitScript(html) {
   [data-editable][contenteditable] { outline: none !important; background: none !important; box-shadow: none !important; }
   .elfill-added { outline: none !important; background: none !important; box-shadow: none !important; }
   #elfill-formatbar { display: none !important; }
+  #elfill-loading { display: none !important; }
   .elfill-added:hover { outline: none !important; }
   .elfill-added[contenteditable] { outline: none !important; background: none !important; box-shadow: none !important; }
 }
@@ -1055,17 +1101,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ── Double-click: edit text ──
     el.addEventListener('dblclick', function(e) {
+      e.preventDefault();
       e.stopPropagation();
+      // Clear any browser word selection first
+      window.getSelection().removeAllRanges();
       hideFormatBar();
       el._origWS = el.style.whiteSpace || '';
       el.style.whiteSpace = 'pre-wrap';
       el.contentEditable = 'true';
       el.focus();
-      var range = document.createRange();
-      range.selectNodeContents(el);
-      var sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
+      // Select all content cleanly after a tick
+      setTimeout(function() {
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }, 0);
     });
 
     // ── Blur: stop editing ──
@@ -1129,8 +1181,117 @@ document.addEventListener('DOMContentLoaded', function() {
       'Reset</button>';
   document.body.appendChild(toolbar);
 
-  document.getElementById('elfill-save').addEventListener('click', function() {
-    window.print();
+  // ── Loading overlay ──
+  var loading = document.createElement('div');
+  loading.id = 'elfill-loading';
+  loading.innerHTML =
+    '<div class="spinner"></div>' +
+    '<div class="loading-text">Generating PDF</div>' +
+    '<div class="loading-progress" id="elfill-progress">Loading libraries...</div>';
+  document.body.appendChild(loading);
+
+  function showLoading(msg) {
+    document.getElementById('elfill-progress').textContent = msg;
+    loading.classList.add('show');
+  }
+  function hideLoading() {
+    loading.classList.remove('show');
+  }
+
+  function loadScript(src) {
+    return new Promise(function(resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  document.getElementById('elfill-save').addEventListener('click', async function() {
+    var btn = this;
+    btn.disabled = true;
+    showLoading('Loading libraries...');
+
+    try {
+      // Hide toolbar and edit indicators for capture
+      toolbar.style.display = 'none';
+      toast.style.display = 'none';
+      formatBar.classList.remove('show');
+      var style = document.createElement('style');
+      style.id = 'elfill-capture-hide';
+      style.textContent = '[data-editable],[data-editable]:hover,.elfill-added,.elfill-added:hover{outline:none!important;box-shadow:none!important;background:transparent!important;}#elfill-loading{background:transparent!important;backdrop-filter:none!important;}.spinner,.loading-text,.loading-progress{display:none!important;}';
+      document.head.appendChild(style);
+
+      // Load libraries if not already loaded
+      if (!window.html2canvas) {
+        await loadScript('/libs/html2canvas/dist/html2canvas.min.js');
+      }
+      if (!window.jspdf) {
+        await loadScript('/libs/jspdf/dist/jspdf.umd.min.js');
+      }
+
+      var pages = document.querySelectorAll('.pf');
+      var pdf = new window.jspdf.jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [pages[0].offsetWidth, pages[0].offsetHeight]
+      });
+
+      // Restore loading overlay visibility for progress updates
+      var hideStyle = document.getElementById('elfill-capture-hide');
+      if (hideStyle) hideStyle.remove();
+      showLoading('Capturing page 1 of ' + pages.length + '...');
+
+      for (var i = 0; i < pages.length; i++) {
+        showLoading('Capturing page ' + (i + 1) + ' of ' + pages.length + '...');
+
+        // Re-hide UI for each page capture
+        toolbar.style.display = 'none';
+        var capStyle = document.createElement('style');
+        capStyle.id = 'elfill-capture-hide';
+        capStyle.textContent = '[data-editable],[data-editable]:hover,.elfill-added,.elfill-added:hover{outline:none!important;box-shadow:none!important;background:transparent!important;}';
+        document.head.appendChild(capStyle);
+
+        if (i > 0) pdf.addPage([pages[i].offsetWidth, pages[i].offsetHeight]);
+
+        var canvas = await html2canvas(pages[i], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+
+        var cs = document.getElementById('elfill-capture-hide');
+        if (cs) cs.remove();
+
+        var imgData = canvas.toDataURL('image/jpeg', 0.95);
+        pdf.addImage(imgData, 'JPEG', 0, 0, pages[i].offsetWidth, pages[i].offsetHeight);
+      }
+
+      showLoading('Opening PDF...');
+
+      // Open PDF in new Chrome tab instead of downloading
+      var pdfBlob = pdf.output('blob');
+      var pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+
+      hideLoading();
+      showToast('PDF opened in new tab!');
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      hideLoading();
+      showToast('PDF failed — falling back to print');
+      window.print();
+    } finally {
+      // Restore toolbar and styles
+      toolbar.style.display = 'flex';
+      toast.style.display = '';
+      var hideStyle = document.getElementById('elfill-capture-hide');
+      if (hideStyle) hideStyle.remove();
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M6 9l6 6 6-6"/></svg>Save as PDF';
+    }
   });
 
   document.getElementById('elfill-reset').addEventListener('click', function() {
