@@ -166,12 +166,22 @@ function markDivEditable(html, oldVal, type) {
   return html.replace(re, `$1data-editable="${type}" $2`);
 }
 
-// Tag all checkbox divs (containing ☐ or ☑) as editable
+// Inline SVG tick — replaces the Unicode ☑ glyph inside checkbox divs so we
+// control stroke width (the "bold" knob) without touching neighbor layout.
+const TICK_SVG = '<svg class="elfill-tick" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M3 8.5 L7 12.5 L13 4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// Tag all checkbox divs (containing ☐ or ☑) as editable, and swap any ticked
+// ☑ glyph for the SVG tick so it renders with a thicker stroke.
 function tagAllCheckboxDivs(html) {
-  return html.replace(
+  html = html.replace(
     /(<div )(class="t [^"]*">\s*[\u2610\u2611])/g,
     '$1data-editable="checkbox" $2'
   );
+  html = html.replace(
+    /(<div [^>]*data-editable="checkbox"[^>]*>\s*)\u2611/g,
+    '$1' + TICK_SVG
+  );
+  return html;
 }
 
 // Wrap value in bold Cambria span
@@ -765,6 +775,13 @@ function addAutoFitScript(html) {
   transition: all 0.1s ease;
   border-radius: 2px;
 }
+[data-editable="checkbox"] .elfill-tick {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  overflow: visible;
+}
 [data-editable="checkbox"]:hover {
   background: rgba(59, 130, 246, 0.08);
   outline: 1.5px dashed rgba(59, 130, 246, 0.5);
@@ -1146,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ── Editable checkboxes ──
+  var TICK_SVG = ${JSON.stringify(TICK_SVG)};
   document.querySelectorAll('[data-editable="checkbox"]').forEach(function(el) {
     originals.set(el, el.innerHTML);
     el.style.cursor = 'pointer';
@@ -1153,11 +1171,16 @@ document.addEventListener('DOMContentLoaded', function() {
     el.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      var html = el.innerHTML;
-      if (html.indexOf('\u2611') !== -1) {
-        el.innerHTML = html.replace('\u2611', '\u2610');
-      } else if (html.indexOf('\u2610') !== -1) {
-        el.innerHTML = html.replace('\u2610', '\u2611');
+      var tick = el.querySelector('.elfill-tick');
+      if (tick) {
+        // Currently checked (SVG tick) — uncheck back to ☐
+        tick.outerHTML = '\u2610';
+      } else if (el.innerHTML.indexOf('\u2610') !== -1) {
+        // Currently unchecked — replace ☐ with SVG tick
+        el.innerHTML = el.innerHTML.replace('\u2610', TICK_SVG);
+      } else if (el.innerHTML.indexOf('\u2611') !== -1) {
+        // Fallback: Unicode ☑ leaked through — replace it with SVG tick
+        el.innerHTML = el.innerHTML.replace('\u2611', TICK_SVG);
       }
     });
   });
