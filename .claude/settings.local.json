@@ -26,7 +26,8 @@
       "Bash(curl -sS -X POST \"http://localhost:3001/fill-form/italy\" -H 'content-type: application/json' -d '{\"surname\":\"X\",\"first_name\":\"Y\",\"sex\":\"female\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\"}')",
       "Bash(curl -sS -X POST \"http://localhost:3001/fill-form/portugal\" -H 'content-type: application/json' -d '{\"surname\":\"X\",\"first_name\":\"Y\",\"sex\":\"female\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\"}')",
       "Bash(wait)",
-      "Bash(node scripts/dump-form-data.js italy 1004)"
+      "Bash(node scripts/dump-form-data.js italy 1004)",
+      "Bash(grep -n \"^CREATE TABLE \\\\`travelers\\\\|^CREATE TABLE \\\\`dependents\\\\|^CREATE TABLE \\\\`traveler_questions\" /Users/elnitish/Desktop/visad_application/visadcouk_dataf_backup_2026-03-25.sql)"
     ]
   }
 }
