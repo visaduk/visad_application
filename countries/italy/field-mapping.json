@@ -1,0 +1,51 @@
+{
+  "country": "Italy",
+  "description": "Schengen Visa Application Form - Italy field mapping. Documentation only; not loaded at runtime. The actual replacements live in countries/italy/config.js.",
+  "notes": [
+    "Italy template uses U+25A1 (□) for empty checkboxes; Portugal uses U+2610 (☐).",
+    "Most checkbox rows are inline multi-option (e.g. '□ Single □ Married □ ...'). The config uses 'inline_text' anchors keyed by the unique text following each box.",
+    "Several fields are combined in single divs: date_of_issue + valid_until in one; home_address + email in one; employer name+address+phone in one. The applyTextReplacements pipeline replaces each anchor independently.",
+    "Italy's reference (filled) traveler is CHEERAKUZHIYIL SASIDHARAN / SHAMILI."
+  ],
+
+  "text_fields": [
+    { "form_field": "1. Surname (Family name)",                "api_key": "surname",               "db_table": "travelers",          "db_column": "last_name",          "transform": "toUpperCase()" },
+    { "form_field": "3. First name(s)",                        "api_key": "first_name",            "db_table": "travelers",          "db_column": "first_name",         "transform": "toUpperCase()" },
+    { "form_field": "4. Date of birth",                        "api_key": "dob",                   "db_table": "travelers",          "db_column": "dob",                "transform": "YYYY-MM-DD → DD/MM/YYYY" },
+    { "form_field": "5. Place of birth",                       "api_key": "place_of_birth",        "db_table": "travelers",          "db_column": "place_of_birth",     "transform": "toUpperCase()" },
+    { "form_field": "6. Country of birth + 16. Issued by",     "api_key": "country_of_birth",      "db_table": "travelers",          "db_column": "country_of_birth",   "transform": "toUpperCase() — same value used for both fields" },
+    { "form_field": "7. Current nationality",                  "api_key": "nationality",           "db_table": "travelers",          "db_column": "nationality",        "transform": "toUpperCase() + 'N' suffix unless ends with AN/SH/SE/CH" },
+    { "form_field": "13. Number of travel document",           "api_key": "passport_number",       "db_table": "travelers",          "db_column": "passport_no" },
+    { "form_field": "14. Date of issue",                       "api_key": "date_of_issue",         "db_table": "travelers",          "db_column": "passport_issue",     "transform": "YYYY-MM-DD → DD/MM/YYYY" },
+    { "form_field": "15. Valid until",                         "api_key": "valid_until",           "db_table": "travelers",          "db_column": "passport_expire",    "transform": "YYYY-MM-DD → DD/MM/YYYY" },
+    { "form_field": "19. Home address",                        "api_key": "home_address",          "db_table": "travelers",          "db_column": "address_line_1+address_line_2+city+state_province+zip_code", "transform": "join with ', '" },
+    { "form_field": "19. E-mail address",                      "api_key": "email",                 "db_table": "travelers",          "db_column": "email" },
+    { "form_field": "19. Telephone no.",                       "api_key": "telephone",             "db_table": "travelers",          "db_column": "country_code+contact_number", "transform": "+{code} {number}" },
+    { "form_field": "20. Residence permit number (UK Evisa)",  "api_key": "residence_permit",      "db_table": "traveler_questions", "db_column": "share_code",         "transform": "format as 'ABC DEF GHI' triplets" },
+    { "form_field": "20. Residence valid until",               "api_key": "residence_valid_until", "db_table": "traveler_questions", "db_column": "evisa_expiry_date",  "transform": "YYYY-MM-DD → DD/MM/YYYY" },
+    { "form_field": "21. Current occupation",                  "api_key": "occupation",            "db_table": "traveler_questions", "db_column": "occupation_title",   "transform": "toUpperCase()" },
+    { "form_field": "22. Employer (combined name+addr+phone)", "api_key": "employer_name+address+telephone", "db_table": "traveler_questions", "db_column": "company_name + company_address_1 + company_city + company_zip + company_phone", "transform": "joined into one bold span" },
+    { "form_field": "25. Member State of main destination",    "api_key": "main_destination",      "hardcoded_value": "Italy" },
+    { "form_field": "26. Member State of first entry",         "api_key": "first_entry",           "hardcoded_value": "Italy" },
+    { "form_field": "Intended date of arrival",                "api_key": "arrival_date",          "db_table": "traveler_questions", "db_column": "travel_date_from",   "transform": "YYYY-MM-DD → DD/MM/YYYY" },
+    { "form_field": "Intended date of departure",              "api_key": "departure_date",        "db_table": "traveler_questions", "db_column": "travel_date_to",     "transform": "YYYY-MM-DD → DD/MM/YYYY" },
+    { "form_field": "30. Hotel name",                          "api_key": "hotel_name",            "db_table": "traveler_questions", "db_column": "hotel_name (or buildInvitingName)" },
+    { "form_field": "30. Hotel address",                       "api_key": "hotel_address",         "db_table": "traveler_questions", "db_column": "hotel_address_1+city+zip (or buildInvitingAddress)" },
+    { "form_field": "30. Hotel telephone",                     "api_key": "hotel_telephone",       "db_table": "traveler_questions", "db_column": "hotel_contact_number (or buildInvitingPhone)" },
+    { "form_field": "30. Hotel e-mail",                        "api_key": "hotel_email" },
+    { "form_field": "Place and date — place",                  "api_key": "place_date",            "db_table": "travelers",          "db_column": "visa_center" },
+    { "form_field": "Place and date — date",                   "api_key": "sign_date",             "db_table": "travelers",          "db_column": "doc_date",           "transform": "YYYY-MM-DD → DD/MM/YYYY" }
+  ],
+
+  "checkbox_fields": [
+    { "form_field": "8. Sex",                          "api_key": "sex",              "options": ["male", "female"],                                                                                            "type": "inline_text" },
+    { "form_field": "9. Civil status",                 "api_key": "civil_status",     "options": ["single", "married", "registered", "separated", "divorced", "widow"],                                         "type": "inline_text" },
+    { "form_field": "12. Type of travel document",     "api_key": "travel_doc_type",  "options": ["ordinary", "diplomatic", "service", "official", "special"],                                                  "type": "inline_text", "default": "ordinary" },
+    { "form_field": "18. Family relationship",         "api_key": "family_relation",  "options": ["spouse", "child", "grandchild", "dependent"],                                                                "type": "inline_text" },
+    { "form_field": "20. Residence",                   "api_key": "residence",        "options": ["no", "yes"],                                                                                                  "type": "inline_text", "default": "yes" },
+    { "form_field": "23. Purpose(s) of journey",       "api_key": "purpose",          "options": ["tourism", "business", "visiting", "cultural", "sports", "official", "medical", "study", "airport_transit"], "type": "inline_text", "default": "tourism" },
+    { "form_field": "27. Number of entries requested", "api_key": "num_entries",      "options": ["single", "two", "multiple"],                                                                                  "type": "inline_text", "default": "multiple" },
+    { "form_field": "28. Fingerprints",                "api_key": "fingerprints",     "options": ["no", "yes"],                                                                                                  "type": "inline_text", "note": "both options live in the same div as field 28's text" },
+    { "form_field": "32. Cost — applicant means",      "api_key": "cost_applicant",   "options": ["by_applicant", "cash", "travellers_cheques", "credit_card", "pre_paid_accommodation", "pre_paid_transport"], "type": "inline_text", "default": ["by_applicant", "cash", "pre_paid_accommodation", "pre_paid_transport"] }
+  ]
+}

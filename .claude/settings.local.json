@@ -4,7 +4,29 @@
       "Bash(npm init:*)",
       "Bash(npm install:*)",
       "Bash(python3:*)",
-      "Bash(mysql -u root -pelnitish@11 visadcouk_dataf -e \"SELECT * FROM travelers WHERE id = 830\\\\G\")"
+      "Bash(mysql -u root -pelnitish@11 visadcouk_dataf -e \"SELECT * FROM travelers WHERE id = 830\\\\G\")",
+      "Bash(git mv:*)",
+      "Bash(node -e ':*)",
+      "Bash(node /tmp/test-render-italy-debug.js)",
+      "Bash(PORT=3001 node server.js)",
+      "Read(//private/tmp/**)",
+      "Bash(break)",
+      "Bash(curl -sS -I http://localhost:3001/fill-form/45)",
+      "Bash(curl -sS -I http://localhost:3001/fill-form/dependent/45)",
+      "Bash(curl -sS -I http://localhost:3001/fill-form/portugal/45)",
+      "Bash(curl -sS -i http://localhost:3001/fill-form/bogus/45)",
+      "Bash(curl -sS -X POST http://localhost:3001/fill-form/portugal -H 'content-type: application/json' -d '{\"surname\":\"TESTSURNAME\",\"first_name\":\"TESTFIRST\",\"sex\":\"female\",\"civil_status\":\"single\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\",\"cost_applicant\":[\"by_applicant\",\"cash\",\"pre_paid_accommodation\",\"pre_paid_transport\"],\"travel_doc_type\":\"ordinary\",\"residence\":\"yes\",\"main_destination\":\"Portugal\",\"first_entry\":\"Portugal\"}')",
+      "Bash(curl -sS -X POST http://localhost:3001/fill-form/italy -H 'content-type: application/json' -d '{\"surname\":\"TESTSURNAME\",\"first_name\":\"TESTFIRST\",\"sex\":\"female\",\"civil_status\":\"single\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\",\"cost_applicant\":[\"by_applicant\",\"cash\",\"pre_paid_accommodation\",\"pre_paid_transport\"],\"travel_doc_type\":\"ordinary\",\"residence\":\"yes\",\"main_destination\":\"Italy\",\"first_entry\":\"Italy\"}')",
+      "Bash(curl -sS -X POST http://localhost:3001/fill-form -H 'content-type: application/json' -d '{\"surname\":\"BACKCOMPAT\",\"first_name\":\"WORKS\"}')",
+      "Bash(curl -sS -X POST http://localhost:3001/fill-form/italy -H 'content-type: application/json' -d '{\"surname\":\"TESTSURNAME\",\"first_name\":\"TESTFIRST\",\"sex\":\"female\",\"civil_status\":\"single\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\",\"fingerprints\":\"no\",\"cost_applicant\":[\"by_applicant\",\"cash\",\"pre_paid_accommodation\",\"pre_paid_transport\"],\"travel_doc_type\":\"ordinary\",\"residence\":\"yes\"}')",
+      "Bash(curl -sS -X POST http://localhost:3001/fill-form/portugal -H 'content-type: application/json' -d '{\"surname\":\"TESTSURNAME\",\"first_name\":\"TESTFIRST\",\"sex\":\"female\",\"civil_status\":\"single\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\",\"fingerprints\":\"no\",\"cost_applicant\":[\"by_applicant\",\"cash\",\"pre_paid_accommodation\",\"pre_paid_transport\"],\"travel_doc_type\":\"ordinary\",\"residence\":\"yes\"}')",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(rm /tmp/test-render.js /tmp/test-render-italy-debug.js /tmp/server-test.log /tmp/italy-out.html /tmp/portugal-out.html)",
+      "Read(//tmp/**)",
+      "Bash(curl -sS -X POST \"http://localhost:3001/fill-form/italy\" -H 'content-type: application/json' -d '{\"surname\":\"X\",\"first_name\":\"Y\",\"sex\":\"female\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\"}')",
+      "Bash(curl -sS -X POST \"http://localhost:3001/fill-form/portugal\" -H 'content-type: application/json' -d '{\"surname\":\"X\",\"first_name\":\"Y\",\"sex\":\"female\",\"purpose\":\"tourism\",\"num_entries\":\"multiple\"}')",
+      "Bash(wait)",
+      "Bash(node scripts/dump-form-data.js italy 1004)"
     ]
   }
 }
