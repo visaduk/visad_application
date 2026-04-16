@@ -130,34 +130,40 @@ function applyTextReplacements(html, data) {
     ['main_destination',      REFERENCE_TEXT.main_destination],
   ];
 
+  // Always mark editable and replace: blank the field when data is missing
+  // so the reference traveler's sample data never leaks into the output.
   for (const [field, oldVal] of simpleMap) {
-    if (data[field]) {
-      html = markDivEditable(html, oldVal, 'text', { loose: true });
-      html = html.replaceAll(oldVal, bold(data[field]));
-    }
+    html = markDivEditable(html, oldVal, 'text', { loose: true });
+    html = html.replaceAll(oldVal, data[field] ? bold(data[field]) : '');
   }
 
   // country_of_birth doubles as "issued by" since both are "INDIA"
-  if (data.country_of_birth) {
-    html = markDivEditable(html, REFERENCE_TEXT.country_of_birth, 'text', { loose: true });
-    html = html.replaceAll(REFERENCE_TEXT.country_of_birth, bold(data.country_of_birth));
-  }
+  html = markDivEditable(html, REFERENCE_TEXT.country_of_birth, 'text', { loose: true });
+  html = html.replaceAll(
+    REFERENCE_TEXT.country_of_birth,
+    data.country_of_birth ? bold(data.country_of_birth) : ''
+  );
 
   // Anchor-based replacements (unique HTML patterns ending in </div>)
-  if (data.first_entry) {
-    html = html.replace(REFERENCE_TEXT.first_entry, ` data-editable="text">${bold(data.first_entry)}</div>`);
-  }
-  if (data.place_date) {
-    html = html.replace(REFERENCE_TEXT.place_date, ` data-editable="text">${bold(data.place_date)}</div>`);
-  }
+  html = html.replace(
+    REFERENCE_TEXT.first_entry,
+    ` data-editable="text">${data.first_entry ? bold(data.first_entry) : ''}</div>`
+  );
+  html = html.replace(
+    REFERENCE_TEXT.place_date,
+    ` data-editable="text">${data.place_date ? bold(data.place_date) : ''}</div>`
+  );
 
   // Span-split: residence permit (share code)
-  if (data.residence_permit) {
-    html = markDivEditable(html, 'S4J', 'text', { loose: true });
-    html = html.replace(REFERENCE_SPAN.residence_permit.old, bold(data.residence_permit));
-  }
+  html = markDivEditable(html, 'S4J', 'text', { loose: true });
+  html = html.replace(
+    REFERENCE_SPAN.residence_permit.old,
+    data.residence_permit ? bold(data.residence_permit) : ''
+  );
 
   // Combined: employer name + address + phone in one div
+  html = markDivEditable(html, 'Alton Manor Care Home', 'text', { loose: true });
+  let employerValue = '';
   if (data.employer_name || data.employer_address || data.employer_telephone) {
     const parts = [];
     if (data.employer_name && data.employer_address) {
@@ -168,10 +174,9 @@ function applyTextReplacements(html, data) {
       parts.push(data.employer_address);
     }
     if (data.employer_telephone) parts.push(data.employer_telephone);
-    const combined = parts.join('      ');
-    html = markDivEditable(html, 'Alton Manor Care Home', 'text', { loose: true });
-    html = html.replace(REFERENCE_SPAN.employer.old, bold(combined));
+    employerValue = bold(parts.join('      '));
   }
+  html = html.replace(REFERENCE_SPAN.employer.old, employerValue);
 
   return html;
 }

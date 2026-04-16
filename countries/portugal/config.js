@@ -146,59 +146,77 @@ function applyTextReplacements(html, data) {
     ['employer_telephone',   REFERENCE_TEXT.employer_telephone],
   ];
 
+  // Simple text fields: always mark editable and replace the reference value
+  // even when data is missing, so the form renders blank instead of showing
+  // the sample traveler's data.
   for (const [field, oldVal] of simpleMap) {
-    if (data[field]) {
-      html = markDivEditable(html, oldVal, 'text');
-      html = html.replaceAll(oldVal, bold(data[field]));
-    }
+    html = markDivEditable(html, oldVal, 'text');
+    html = html.replaceAll(oldVal, data[field] ? bold(data[field]) : '');
   }
 
   // country_of_birth doubles as "issued_by" since both are "SRI LANKA"
-  if (data.country_of_birth) {
-    html = markDivEditable(html, REFERENCE_TEXT.country_of_birth, 'text');
-    html = html.replaceAll(REFERENCE_TEXT.country_of_birth, bold(data.country_of_birth));
-  }
+  html = markDivEditable(html, REFERENCE_TEXT.country_of_birth, 'text');
+  html = html.replaceAll(
+    REFERENCE_TEXT.country_of_birth,
+    data.country_of_birth ? bold(data.country_of_birth) : ''
+  );
 
   // Anchor-based replacements (unique HTML patterns)
-  if (data.first_entry) {
-    html = html.replace(REFERENCE_TEXT.first_entry, ` data-editable="text">${bold(data.first_entry)}</div>`);
-  }
-  if (data.place_date) {
-    html = html.replace(REFERENCE_TEXT.place_date, ` data-editable="text">${bold(data.place_date)}</div>`);
-  }
+  html = html.replace(
+    REFERENCE_TEXT.first_entry,
+    ` data-editable="text">${data.first_entry ? bold(data.first_entry) : ''}</div>`
+  );
+  html = html.replace(
+    REFERENCE_TEXT.place_date,
+    ` data-editable="text">${data.place_date ? bold(data.place_date) : ''}</div>`
+  );
 
   // Span-split replacements
-  if (data.home_address) {
-    html = markDivEditable(html, '107,', 'text');
-    html = html.replace(REFERENCE_SPAN.home_address.old, bold(data.home_address));
-  }
+  html = markDivEditable(html, '107,', 'text');
+  html = html.replace(
+    REFERENCE_SPAN.home_address.old,
+    data.home_address ? bold(data.home_address) : ''
+  );
+
+  html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
+  let employerValue = '';
   if (data.employer_name && data.employer_address) {
-    html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
-    html = html.replace(REFERENCE_SPAN.employer.old, bold(`${data.employer_name},${data.employer_address}`));
+    employerValue = bold(`${data.employer_name},${data.employer_address}`);
   } else if (data.employer_name) {
-    html = markDivEditable(html, 'OKEHAMPTON ROAD POST OFFICE', 'text');
-    html = html.replace('OKEHAMPTON ROAD POST OFFICE', bold(data.employer_name));
+    employerValue = bold(data.employer_name);
+  } else if (data.employer_address) {
+    employerValue = bold(data.employer_address);
   }
-  if (data.main_destination) {
-    html = markDivEditable(html, 'Portugal,', 'text');
-    html = html.replace(REFERENCE_SPAN.main_destination.old, bold(data.main_destination));
-  }
-  // Hotel phone + address are in ONE div
-  const newPhone = data.hotel_telephone || '';
-  const newAddr = data.hotel_address || '';
+  html = html.replace(REFERENCE_SPAN.employer.old, employerValue);
+
+  html = markDivEditable(html, 'Portugal,', 'text');
+  html = html.replace(
+    REFERENCE_SPAN.main_destination.old,
+    data.main_destination ? bold(data.main_destination) : ''
+  );
+
+  // Hotel phone + address share one div — blank both when missing
   html = markDivEditable(html, '+351', 'text');
+  const newPhone = data.hotel_telephone ? bold(data.hotel_telephone) : '';
+  const newAddr = data.hotel_address ? bold(data.hotel_address) : '';
   html = html.replace(
     REFERENCE_SPAN.hotel_phone_and_address.old,
-    `${bold(newPhone)}<span class="_ _13"></span><span class="ff8">${bold(newAddr)}</span>`
+    newPhone || newAddr
+      ? `${newPhone}<span class="_ _13"></span><span class="ff8">${newAddr}</span>`
+      : ''
   );
-  if (data.hotel_email) {
-    html = markDivEditable(html, 'Lisbon,reservas', 'text');
-    html = html.replace(REFERENCE_SPAN.hotel_email.old, bold(data.hotel_email));
-  } else {
-    html = html.replace(REFERENCE_SPAN.hotel_email.old, '');
-  }
+
+  html = markDivEditable(html, 'Lisbon,reservas', 'text');
+  html = html.replace(
+    REFERENCE_SPAN.hotel_email.old,
+    data.hotel_email ? bold(data.hotel_email) : ''
+  );
+
   html = markDivEditable(html, 'Residencial do Areeiro', 'text');
-  html = html.replace(REFERENCE_SPAN.hotel_name.old, bold(data.hotel_name || ''));
+  html = html.replace(
+    REFERENCE_SPAN.hotel_name.old,
+    data.hotel_name ? bold(data.hotel_name) : ''
+  );
 
   // Fingerprints date + visa number overlay (inserted into the dotted-line container)
   if (data.fingerprints === 'yes') {
